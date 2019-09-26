@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+
+####
+# brew-backup
+# 
+# Generate a Brewfile and back it up to git.
+#
+# Author: Adam Westbrook <https://github.com/adamdodev> 
+# Help/Issues: https://github.com/adamdodev/brew-backup
+####
+
+set -euo pipefail
+
+display_help() {
+    echo "Usage: $(basename $0) [options...]" >&2
+    echo
+    echo "    -h, --help           Show this help info"
+    echo
+    echo "Configuration: Create a .brew-backup file in your home directory with the following options:"
+    echo
+	echo "    git_repo=git@example.com:example/example.git    # Git repo to back up your Brewfile to"
+	echo
+}
+
+while :
+do
+    case "${1-}" in
+      -h | --help)
+          display_help
+          exit 0
+          ;;
+      -*)
+          echo "Error: Unknown option: $1" >&2
+          echo
+          display_help
+          exit 1 
+          ;;
+      *)  # No more options
+          break
+          ;;
+    esac
+done
+
+echo "Starting brew backup..."
+
+echo "Creating Brewfile in home dir..."
+cd $HOME
+brew bundle dump --describe --force
+
+echo "Checking for git URL in $HOME/.brew-backup..."
+
+file="$HOME/.brew-backup"
+
+if [[ ! -e $file ]]; then
+	echo "No $HOME/.brew-backup file found :-("
+	exit 1
+fi
+
+brew_backup_git_repo=""
+
+while IFS="=" read -r key value; do
+case "$key" in
+  "git_repo") brew_backup_git_repo="$value" ;;
+esac
+done < "$file"
+
+if [[ -z "$brew_backup_git_repo" ]]
+then
+
+	echo "No git URL found :-("
+	# help
+	exit 1
+
+else
+
+	echo "Using git repo: $brew_backup_git_repo"
+
+	if [[ ! -d "$HOME/.brew-backup-repo" ]]; then
+		echo "Creating brew backup repo directory..."
+		mkdir -p "$HOME/.brew-backup-repo"
+	fi
+
+	cd "$HOME/.brew-backup-repo"
+
+	git init
+
+	git remote rm origin || true
+	git remote add origin "$brew_backup_git_repo"
+
+	git checkout -b master || true
+
+	if [[ ! -z "$(git ls-remote --heads $brew_backup_git_repo master)" ]]; then
+		git pull origin master
+	fi
+
+	cp "$HOME/Brewfile" "$HOME/.brew-backup-repo/Brewfile"
+
+	git add .
+
+	git commit -m "Updated $(date -Iseconds)" || true
+
+	git push origin master
+
+fi
+
+echo "Brew backup complete!"
