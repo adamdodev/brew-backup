@@ -1,0 +1,3 @@
+git_repo=git@example.com:example/example.git    # Git repo to back up your Brewfile to
+
+# New line required at end of file
