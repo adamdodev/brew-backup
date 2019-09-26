@@ -12,7 +12,7 @@
 set -euo pipefail
 
 display_help() {
-    echo "Usage: $(basename $0) [options...]" >&2
+    echo "Usage: $(basename "$0") [options...]" >&2
     echo
     echo "    -h, --help           Show this help info"
     echo
@@ -44,7 +44,7 @@ done
 echo "Starting brew backup..."
 
 echo "Creating Brewfile in home dir..."
-cd $HOME
+cd "$HOME"
 brew bundle dump --describe --force
 
 echo "Checking for git URL in $HOME/.brew-backup..."
@@ -89,7 +89,7 @@ else
 
 	git checkout -b master || true
 
-	if [[ ! -z "$(git ls-remote --heads $brew_backup_git_repo master)" ]]; then
+	if [[ -n "$(git ls-remote --heads "$brew_backup_git_repo" master)" ]]; then
 		git pull origin master
 	fi
 
